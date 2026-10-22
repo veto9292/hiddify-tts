@@ -32,13 +32,30 @@ export function decode(base64: string): Uint8Array {
 export async function decodeAudioData(
   data: Uint8Array,
   ctx: AudioContext,
-  sampleRate: number,
-  numChannels: number,
+  sampleRate: number = 24000,
+  numChannels: number = 1,
 ): Promise<AudioBuffer> {
-  // The raw data is 16-bit PCM. We create a view using byteOffset and byteLength
-  // to correctly handle cases where `data` is a subarray or view of a larger buffer.
-  const dataInt16 = new Int16Array(data.buffer, data.byteOffset, data.byteLength / 2);
-  const frameCount = dataInt16.length / numChannels;
+  // Check if data starts with 'RIFF' and contains 'WAVE' (standard WAV container)
+  const isWav =
+    data.length >= 12 &&
+    data[0] === 0x52 && // R
+    data[1] === 0x49 && // I
+    data[2] === 0x46 && // F
+    data[3] === 0x46 && // F
+    data[8] === 0x57 && // W
+    data[9] === 0x41 && // A
+    data[10] === 0x56 && // V
+    data[11] === 0x45; // E
+
+  if (isWav) {
+    // Standard WAV file: decode using the browser's native decodeAudioData
+    const arrayBuffer = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+    return await ctx.decodeAudioData(arrayBuffer);
+  }
+
+  // Fallback: 16-bit PCM (little-endian)
+  const dataInt16 = new Int16Array(data.buffer, data.byteOffset, Math.floor(data.byteLength / 2));
+  const frameCount = Math.floor(dataInt16.length / numChannels);
   const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
 
   // Copy the PCM data into the AudioBuffer, converting it from 16-bit integer
