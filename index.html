@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hiddify TTS</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'brand-primary': '#1e40af',
+              'brand-secondary': '#3b82f6',
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+      /* Custom styles to improve Markdown rendering to match Gemini UI */
+      .prose {
+        --tw-prose-body: #d1d5db; /* Increased contrast (was #bdc1c6) */
+        --tw-prose-headings: #8ab4f8; /* Match Gemini heading color (blue) */
+        --tw-prose-lead: #bdc1c6;
+        --tw-prose-links: #8ab4f8;
+        --tw-prose-bold: #f3f4f6; /* Increased contrast (was #e8eaed) */
+        --tw-prose-counters: #bdc1c6;
+        --tw-prose-bullets: #8ab4f8;
+        --tw-prose-hr: #5f6368;
+        --tw-prose-quotes: #e8eaed;
+        --tw-prose-quote-borders: #8ab4f8;
+        --tw-prose-captions: #969ba1;
+        --tw-prose-code: #e8eaed;
+        --tw-prose-pre-code: #e8eaed;
+        --tw-prose-pre-bg: #282c34; /* This matches highlight.js atom-one-dark theme */
+        --tw-prose-th-borders: #5f6368;
+        --tw-prose-td-borders: #5f6368;
+        
+        font-size: 1rem;
+        line-height: 1.75; /* Slightly more spacious line height */
+      }
+
+      .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+        color: var(--tw-prose-headings);
+        font-weight: 600;
+      }
+      
+      .prose h1 {
+        font-size: 2em;
+        margin-bottom: 1em;
+      }
+      
+      .prose h2 {
+        /* Removed bottom border to match Gemini UI */
+        padding-bottom: 0;
+        border-bottom: 0;
+        margin-top: 2em;
+        margin-bottom: 1em;
+        font-size: 1.5em;
+      }
+      
+      .prose h3 {
+        font-size: 1.25em;
+        margin-top: 1.5em;
+        margin-bottom: 0.75em;
+      }
+
+      .prose p {
+        margin-bottom: 1em;
+      }
+
+      .prose strong {
+        color: var(--tw-prose-bold);
+      }
+
+      .prose a {
+        color: var(--tw-prose-links);
+        text-decoration: none;
+      }
+      .prose a:hover {
+        text-decoration: underline;
+      }
+
+      .prose code {
+        background-color: #3c4043;
+        padding: 0.2em 0.4em;
+        margin: 0 0.1em;
+        font-size: 85%;
+        border-radius: 6px;
+      }
+      .prose code::before,
+      .prose code::after {
+        content: none;
+      }
+      
+      /* FIX: Container for the code block and its header */
+      .prose .code-block-wrapper {
+        margin-top: 1.5em;
+        margin-bottom: 1.5em;
+        border-radius: 0.5rem;
+        background-color: var(--tw-prose-pre-bg);
+        overflow: hidden; /* To contain the children's corners */
+      }
+      
+      /* FIX: Header containing language and copy button */
+      .prose .code-block-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background-color: #3c4043; /* Slightly darker header */
+        color: #bdc1c6;
+        font-size: 0.875rem;
+        direction: ltr; /* Ensure header content is always LTR */
+      }
+      
+      .prose .language-name {
+        font-family: sans-serif;
+      }
+
+      /* FIX: Style for the copy button */
+      .prose .copy-code-button {
+        background: none;
+        border: none;
+        color: #bdc1c6;
+        cursor: pointer;
+        padding: 0.25rem;
+        border-radius: 0.25rem;
+        transition: background-color 0.2s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .prose .copy-code-button:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+      .prose .copy-code-button:disabled {
+        cursor: default;
+      }
+      .prose .copy-code-button:disabled:hover {
+        background-color: transparent;
+      }
+      .prose .copy-code-button svg {
+        width: 1rem;
+        height: 1rem;
+      }
+
+      /* FIX: Reset original pre styles that are now on the wrapper */
+      .prose pre {
+        background-color: transparent !important;
+        margin: 0 !important;
+        padding: 1rem;
+        border-radius: 0;
+        white-space: pre; 
+        direction: ltr !important; /* Always render code LTR */
+        text-align: left !important; /* Always align code to the left */
+        overflow-x: auto;
+      }
+
+      /* FIX: Reset inline code styles when inside a pre block */
+      .prose pre code {
+        background-color: transparent;
+        padding: 0;
+        margin: 0;
+        font-size: inherit;
+        color: inherit;
+        border-radius: 0;
+      }
+
+      /* REMOVED: Custom token styles are now handled by highlight.js */
+
+      .prose ul {
+        list-style: none;
+        padding-left: 0; /* Let li handle padding */
+        margin-top: 1em;
+        margin-bottom: 1em;
+      }
+      /* Using logical properties to automatically handle LTR/RTL direction */
+      .prose ul > li {
+        position: relative;
+        padding-inline-start: 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+      .prose ul > li::before {
+        content: "";
+        position: absolute;
+        inset-inline-start: 0.25rem;
+        top: 0.65rem; /* Adjusted for better vertical alignment */
+        width: 0.4rem; /* Smaller bullet */
+        height: 0.4rem;
+        background-color: var(--tw-prose-bullets);
+        border-radius: 2px; /* A squircle, close to Gemini's */
+      }
+
+      /* Using logical properties for blockquotes */
+      .prose blockquote {
+        border-inline-start: 3px solid var(--tw-prose-quote-borders);
+        padding-inline-start: 1rem;
+        color: var(--tw-prose-quotes);
+        font-style: normal; /* Gemini's is not italic */
+      }
+      
+      .prose table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1.5em;
+        margin-bottom: 1.5em;
+      }
+      .prose th, .prose td {
+        padding: 0.75em 1em; /* Increased padding for readability */
+        border: 1px solid var(--tw-prose-td-borders);
+        text-align: inherit; /* Let the `dir` attribute on the parent control alignment */
+      }
+      .prose thead {
+        background-color: transparent; /* Removed header background to match Gemini */
+      }
+      .prose th {
+        font-weight: 600;
+        color: var(--tw-prose-bold); /* Bolder header text */
+      }
+
+      /* --- Animations for Processing Modal --- */
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes scaleIn {
+        from { transform: scale(0.95); opacity: 0; }
+        to { transform: scale(1); opacity: 1; }
+      }
+      @keyframes dot-wave {
+        0%, 60%, 100% { transform: initial; }
+        30% { transform: translateY(-10px); }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.2s ease-out forwards;
+      }
+      .animate-scale-in {
+        animation: scaleIn 0.2s ease-out forwards;
+      }
+      .dot-wave div {
+        animation: dot-wave 1.3s ease-in-out infinite;
+      }
+      .dot-wave div:nth-child(2) { animation-delay: -1.1s; }
+      .dot-wave div:nth-child(3) { animation-delay: -0.9s; }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^18.2.0",
+    "react/": "https://aistudiocdn.com/react@^18.2.0/",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^18.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^0.14.0",
+    "marked": "https://cdn.jsdelivr.net/npm/marked@13.0.0/lib/marked.esm.js",
+    "vite": "https://aistudiocdn.com/vite@^7.2.2",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
+    "url": "https://aistudiocdn.com/url@^0.11.4",
+    "process": "https://aistudiocdn.com/process@^0.11.10"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-gray-900 text-white">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

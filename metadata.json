@@ -1,0 +1,8 @@
+{
+  "name": "Hiddify TTS",
+  "description": "A high-performance, intelligent text-to-speech engine optimized for Persian and English content with pseudo-streaming capabilities.",
+  "requestFramePermissions": [
+    "clipboard-read"
+  ],
+  "majorCapabilities": []
+}
